@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="et">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tallinna orientatsioonimäng — HTML versioon</title>
+<style>
+  body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; background:linear-gradient(180deg,#e6f0ff 0%, #f7fbf7 100%); margin:0; padding:20px; color:#0f172a}
+  .card{max-width:900px;margin:20px auto;background:#fff;padding:20px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.08)}
+  h1{margin:0 0 8px;font-size:24px}
+  h2{margin:8px 0 4px;font-size:20px}
+  p.small{color:#475569;margin:0 0 8px;font-size:14px}
+  .row{display:flex;gap:16px;align-items:flex-start}
+  .thumb{width:220px;height:140px;object-fit:cover;border-radius:8px;flex:0 0 220px;box-shadow:0 6px 18px rgba(2,6,23,0.06)}
+  .options{margin-top:12px;display:flex;flex-direction:column;gap:10px}
+  button.opt{padding:12px 14px;border-radius:10px;border:1px solid #e6eef6;background:#f1f5f9;text-align:left;cursor:pointer;font-size:15px}
+  button.opt:hover{background:#e6eef6}
+  button.opt[disabled]{opacity:0.7;cursor:default}
+  .btn{display:inline-block;padding:10px 16px;border-radius:12px;border:0;background:#1e40af;color:#fff;cursor:pointer}
+  .btn.green{background:#16a34a}
+  .fixed-next{position:fixed;right:18px;bottom:18px;z-index:999}
+  .score{font-weight:600;color:#0f172a}
+  .footer{margin-top:14px;color:#64748b;font-size:13px}
+  .hint{color:#475569;font-size:13px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="card" id="app">
+  <h1>Tallinna vanalinna orientatsioonimäng</h1>
+  <div id="stage"></div>
+  
+</div>
+
+<script>
+// Data: 15 places, 25 questions (texts in Estonian)
+const PLACES = [
+  {id:1,name:"Raekoda",address:"Raekoja plats 1",image:"https://upload.wikimedia.org/wikipedia/commons/4/4e/Tallinn_Town_Hall_2022.jpg",questions:[
+    {q:"Milline funktsioonide kombinatsioon iseloomustab kõige paremini raekoja rolli 18.–19. sajandil?",options:["Aadli sümboolne residents","Linnavalitsus, kohus ja avalik võim","Ainult kaubandushoone","Sõjaline halduskeskus"],correct:1},
+    {q:"Miks asub raekoda avatud väljakul, mitte elamukvartalite sees?",options:["Kaitse mugavuse tõttu","Võimu avalikkuse ja kodanike kogunemiste jaoks","Usulistel põhjustel","Esteetilistel kaalutlustel"],correct:1}
+  ]},
+  {id:2,name:"Raeapteek",address:"Raekoja plats 11",image:"https://upload.wikimedia.org/wikipedia/commons/3/3f/Raeapteek_Tallinn.jpg",questions:[
+    {q:"Mida ütleb apteegi asukoht meditsiini rolli kohta linnas?",options:["Meditsiin oli eraasi ilma kontrollita","Tervist seostati linnavõimu ja usaldusega","Apteegid paiknesid juhuslikult","Apteegid teenindasid ainult vaeseid"],correct:1},
+    {q:"Miks oli apteek tihti koht, kus kogunesid nii elanikud kui ka ametnikud?",options:["Sellepärast, et apteegid olid ka pangad","Terviseteenused sidusid kogukonna ja võimu tegevusi","Apteegid olid ainus avalik koht","Apteegid olid tasuta"],correct:1}
+  ]},
+  {id:3,name:"Mustpeade maja",address:"Pikk 26",image:"https://upload.wikimedia.org/wikipedia/commons/1/1b/House_of_the_Blackheads_Tallinn.jpg",questions:[
+    {q:"Millist sotsiaalset funktsiooni täitis hoone demonstratiivne arhitektuur?",options:["Sõjalist","Majanduslikku ja esinduslikku","Usulist","Halduslikku"],correct:1},
+    {q:"Miks oli kaupmeestele oluline omada eraldi hoonet, mitte koguneda raekojas?",options:["Usuliste erinevuste tõttu","Oma autonoomia ja mõju rõhutamiseks","Kuninga käsul","Arhitektuurse moe tõttu"],correct:1}
+  ]},
+  {id:4,name:"Suurgild",address:"Pikk 17",image:"https://upload.wikimedia.org/wikipedia/commons/5/5c/Great_Guild_Tallinn.jpg",questions:[
+    {q:"Millist rolli mängisid gildid linna majanduses?",options:["Usulist","Kaubanduse ja ametistandardite kontrolli","Sõjalist","Hariduslikku"],correct:1},
+    {q:"Kuidas aitasid gilde reguleerida kohalikke käsitöölisi ja teenuseid?",options:["Keelates väliskaubanduse","Seades kutse- ja kvaliteedistandardeid","Pakkuge sõjalist väljaõpet","Võttes maksud üle kogu linna"],correct:1}
+  ]},
+  {id:5,name:"Oleviste kirik",address:"Lai 50",image:"https://upload.wikimedia.org/wikipedia/commons/0/0a/St._Olaf%27s_Church_Tallinn.jpg",questions:[
+    {q:"Miks domineerib kirik linnasiluetis?",options:["Kaitselistel põhjustel","Usulise maailmapildi sümbolina","Juhusliku hoonestuse tõttu","Tehnilistel põhjustel"],correct:1},
+    {q:"Kuidas aitas kiriku kõrgus meremeestel ja kauplejatel?",options:["See kaitses neid tormide eest","See toimis maamärgina ja orientiirina","See vähendas pimedust","See vähendas maksukohustusi"],correct:1}
+  ]},
+  {id:6,name:"Niguliste kirik",address:"Niguliste 3",image:"https://upload.wikimedia.org/wikipedia/commons/3/35/Niguliste_Church_Tallinn.jpg",questions:[
+    {q:"Miks oli see kirik eriti oluline linna saksa elanikkonnale?",options:["Sadamale läheduse tõttu","Saksa kogukonna ja kultuuri keskusena","Rootsi võimu käsul","Arhitektuuriliste eripärade tõttu"],correct:1},
+    {q:"Millist rolli mängisid kirikud kultuurilise identiteedi hoidmisel?",options:["Pakkudes ainult majutust","Olles kogunemiskoht ja rituaalide keskus","Ainult muuseumina","Toitudes rahaliselt kogu linna"],correct:1}
+  ]},
+  {id:7,name:"Kiek in de Kök",address:"Komandandi tee 2",image:"https://upload.wikimedia.org/wikipedia/commons/7/7b/Kiek_in_de_Kok_Tallinn.jpg",questions:[
+    {q:"Milline oht määras selle torni arhitektuuri?",options:["Tulekahjud","Suurtükirünnakud","Majanduslik konkurents","Üleujutused"],correct:1},
+    {q:"Mida näitavad torni paksud seinad ja väiksed avad relvastuse seisukohalt?",options:["Et see oli peamiselt dekoratiivne","Et see oli mõeldud kaitseks ja vastupidavuseks","Et see oli elamuhoone","Et see oli vastuvõturuum"],correct:1}
+  ]},
+  {id:8,name:"Viru väravad",address:"Viru tänav",image:"https://upload.wikimedia.org/wikipedia/commons/9/9f/Viru_Gates_Tallinn.jpg",questions:[
+    {q:"Miks olid linnaväravad majanduslikult olulised?",options:["Siin toimusid usutseremooniad","Nende kaudu kontrolliti kaupu ja makse","Need olid elamud","Neid kasutati ainult öösiti"],correct:1},
+    {q:"Kuidas mõjutasid väravad linna sissetulekuvooge?",options:["Väravad vähendasid kaubandust","Kontroll võimaldas koguda tollimakse ja makse","Väravad vähendasid turismitulu","Väravad ainult sümboolsed"],correct:1}
+  ]},
+  {id:9,name:"Pikk jalg",address:"Pikk jalg",image:"https://upload.wikimedia.org/wikipedia/commons/6/6e/Pikk_jalg_Tallinn.jpg",questions:[
+    {q:"Miks oli tee all-linna ja Toompea vahel sotsiaalselt oluline?",options:["Usuliste rongkäikude tõttu","See peegeldas sotsiaalset hierarhiat","Sõjalistel põhjustel","Kliima tõttu"],correct:1}
+  ]},
+  {id:10,name:"Lühike jalg",address:"Lühike jalg",image:"https://upload.wikimedia.org/wikipedia/commons/1/14/L%C3%BChike_jalg_Tallinn.jpg",questions:[
+    {q:"Miks kasutati seda teed harvemini kui Pikka jalga?",options:["Usuliste keeldude tõttu","Järsu tõusu ja piiratud ligipääsu tõttu","Arhitektuurse moe tõttu","Halva valgustuse tõttu"],correct:1}
+  ]},
+  {id:11,name:"Toompea loss",address:"Lossi plats 1",image:"https://upload.wikimedia.org/wikipedia/commons/0/0c/Toompea_Castle_2022.jpg",questions:[
+    {q:"Miks kujunes Toompeast poliitilise võimu keskus?",options:["Kaubateede tõttu","Kõrgendatud ja kontrollitava asukoha tõttu","Usulistel põhjustel","Juhuslikult"],correct:1},
+    {q:"Kuidas mõjutas Toompea kõrgem positsioon sõjalist kontrolli?",options:["See vähendas kontrolli linna üle","See andis strateegilise ülevaate ja kaitsevõime","See oli ebamugav valvuritele","See ei mõjutanud julgeolekut"],correct:1}
+  ]},
+  {id:12,name:"Toomkirik",address:"Toom-Kooli 6",image:"https://upload.wikimedia.org/wikipedia/commons/9/94/Tallinn_Dome_Church.jpg",questions:[
+    {q:"Miks eelistas saksa aadlikond just seda kirikut?",options:["Suuruse tõttu","Staatuse ja traditsioonide sümbolina","Akustika tõttu","Rootsi võimu käsul"],correct:1}
+  ]},
+  {id:13,name:"Bastionivallid",address:"Falgi tee",image:"https://upload.wikimedia.org/wikipedia/commons/4/48/Bastion_Passage_Tallinn.jpg",questions:[
+    {q:"Miks muutus bastionisüsteem 18. sajandil vajalikuks?",options:["Suurtükiväe arengu tõttu","Rahvastiku kasvu tõttu","Esteetilistel põhjustel","Usukonfliktide tõttu"],correct:0}
+  ]},
+  {id:14,name:"Rootsi bastionid",address:"Kiek in de Köki piirkond",image:"https://upload.wikimedia.org/wikipedia/commons/2/27/Tallinn_bastions.jpg",questions:[
+    {q:"Kuidas mõjutas Rootsi aeg linna kaitseilmet?",options:["Suurtükiväe kindlustuste tugevdamine","Müüride vähendamine","Kaitsest loobumine","Puitehitusele üleminek"],correct:0}
+  ]},
+  {id:15,name:"Pikk tänav",address:"Pikk tänav",image:"https://upload.wikimedia.org/wikipedia/commons/8/8e/Pikk_Street_Tallinn.jpg",questions:[
+    {q:"Miks koondusid kaupmeeste majad just sellele tänavale?",options:["Võimu ja kaubateede läheduse tõttu","Madalamate maksude tõttu","Usulistel põhjustel","Juhuslikult"],correct:0},
+    {q:"Kuidas aitas tänava asukoht kaupmeestel luua ärisuhteid?",options:["Eraldades nad teistest elanikkonnarühmadest","Tagades otseühenduse sadama ja turgudega","Keelates suhtlemise välismaalastega","Muutes nad maksuvabaks"],correct:1}
+  ]}
+];
+
+// utils
+function shuffleArray(arr){ const a = arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a; }
+function createPlaceholder(){ return 'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1200\" height=\"800\"><rect width=\"100%\" height=\"100%\" fill=\"#e6eef6\"/><g fill=\"#94a3b8\"><rect x=\"150\" y=\"250\" width=\"900\" height=\"300\" rx=\"16\"/><text x=\"600\" y=\"420\" font-size=\"28\" font-family=\"Arial\" fill=\"#626f7a\" text-anchor=\"middle\">Pilt puudub</text></g></svg>'); }
+
+// state
+let placeIndex = 0, questionIndex = 0, arrived=false, selected=null, score=0;
+const stage = document.getElementById('stage');
+
+function render(){
+  const place = PLACES[placeIndex];
+  if(!place){
+    stage.innerHTML = `<div><h2>Marsruut lõpetatud</h2><p class="small">Tulemus: <span class="score">${score}</span></p></div>`;
+    return;
+  }
+  const question = (place.questions && place.questions[questionIndex]) ? place.questions[questionIndex] : null;
+  const imgSrc = place.image || createPlaceholder();
+  const qText = question ? question.q : "Klikka 'Olen kohale jõudnud'";
+  let html = `<h2>${place.name}</h2><p class="small">Aadress: ${place.address}</p><div class="row"><img class="thumb" src="${imgSrc}" onerror="this.src='${createPlaceholder()}';" alt="${place.name}"><div><p class="small">${qText}</p></div></div>`;
+  if(!arrived){
+    html += `<div style="margin-top:12px;"><button class="btn" id="arriveBtn">Olen kohale jõudnud</button></div>`;
+    stage.innerHTML = html;
+    document.getElementById('arriveBtn').onclick = ()=>{ arrived=true; selected=null; render(); };
+    return;
+  }
+  // prepare shuffled options
+  const opts = question.options.map((text, idx)=>({text,isCorrect: idx===question.correct}));
+  const shuffled = shuffleArray(opts);
+  html += `<div class="options">`;
+  shuffled.forEach((opt,i)=>{
+    html += `<button class="opt" data-idx="${i}" ${selected!==null? 'disabled':''}>${opt.text}</button>`;
+  });
+  html += `</div>`;
+  stage.innerHTML = html;
+  // attach handlers
+  const buttons = stage.querySelectorAll('.opt');
+  buttons.forEach((btn, i)=>{
+    btn.onclick = ()=>{
+      selected = shuffled[i].text;
+      if(shuffled[i].isCorrect) score++;
+      // reveal colors
+      buttons.forEach((b, j)=>{
+        b.disabled = true;
+        if(shuffled[j].isCorrect){ b.style.background='#ecfdf5'; b.style.border='1px solid #34d399'; }
+        else if (shuffled[j].text===selected){ b.style.background='#fff1f2'; b.style.border='1px solid #fb7185'; }
+      });
+      // show fixed next button
+      showNextButton();
+    };
+  });
+}
+
+function showNextButton(){
+  // ensure single next button
+  let existing = document.getElementById('nextFixed');
+  if(!existing){
+    const btn = document.createElement('button');
+    btn.id='nextFixed';
+    btn.className='btn green fixed-next';
+    btn.textContent='Jätka';
+    btn.onclick = ()=>{
+      // reset and advance
+      selected = null;
+      arrived = false;
+      questionIndex = 0;
+      placeIndex++;
+      // if still places left, render next; else render finish
+      render();
+      // remove fixed button
+      const e = document.getElementById('nextFixed'); if(e) e.remove();
+    };
+    document.body.appendChild(btn);
+  }
+}
+
+// initial render
+render();
+</script>
+</body>
+</html>
